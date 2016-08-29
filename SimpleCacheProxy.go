@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"gopkg.in/redis.v4"
 	"io/ioutil"
-	"github.com/OctavianParalescu/SCP/Tools"
+	"./Tools"
 	"github.com/NYTimes/gziphandler"
 )
 
