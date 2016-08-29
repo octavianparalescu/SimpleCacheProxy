@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"gopkg.in/redis.v4"
 	"io/ioutil"
-	"./Tools"
+	"github.com/OctavianParalescu/SimpleCacheProxy/Tools"
 	"github.com/NYTimes/gziphandler"
 )
 
