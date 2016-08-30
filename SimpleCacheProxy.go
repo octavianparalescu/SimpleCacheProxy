@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"github.com/OctavianParalescu/SimpleCacheProxy/Tools"
 	"github.com/NYTimes/gziphandler"
+	"log"
 )
 
 func redisConnect() *redis.Client {
@@ -76,5 +77,7 @@ func main() {
 	withGz := gziphandler.GzipHandler(http.HandlerFunc(handler))
 
 	http.Handle("/", withGz)
-	http.ListenAndServe(":8040", nil)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
 }
