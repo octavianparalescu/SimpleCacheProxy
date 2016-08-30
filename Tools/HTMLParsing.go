@@ -7,8 +7,8 @@ func parseHTML(HTML []byte) []byte {
 	HTMLString := string(HTML)
 
 	// Replace paths
-	HTMLString = strings.Replace(HTMLString, "develop.drewberry.co.uk", "localhost:8040", -1)
-	HTMLString = strings.Replace(HTMLString, "drewberryinsurance.co.uk", "localhost:8040", -1)
+	HTMLString = strings.Replace(HTMLString, "develop.drewberry.co.uk", "localhost:8080", -1)
+	HTMLString = strings.Replace(HTMLString, "drewberryinsurance.co.uk", "localhost:8080", -1)
 
 	return []byte(HTMLString)
 }
