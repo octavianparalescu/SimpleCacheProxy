@@ -8,6 +8,8 @@ var allowedHeaders = map[string]bool{
 	"Content-Type": true,
 	"Expires": true,
 	"Cache-Control": true,
+	"Last-Modified": true,
+	"ETag": true,
 }
 
 func GetProperHeaders(h http.Header) map[string]string {
