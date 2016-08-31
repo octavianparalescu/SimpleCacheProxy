@@ -37,7 +37,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if (errB != nil) {
 		//fmt.Println("Not a hit");
 
-		resp, err := http.Get("http://develop.drewberry.co.uk" + path)
+		resp, err := http.Get("https://www.drewberryinsurance.co.uk" + path)
 		if err != nil {
 			panic(err)
 		}
@@ -77,7 +77,7 @@ func main() {
 	withGz := gziphandler.GzipHandler(http.HandlerFunc(handler))
 
 	http.Handle("/", withGz)
-	if err := http.ListenAndServe("0.0.0.0:8080", nil); err != nil {
+	if err := http.ListenAndServe("0.0.0.0:80", nil); err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }
