@@ -7,6 +7,7 @@ import (
 	"github.com/OctavianParalescu/SimpleCacheProxy/Tools"
 	"github.com/NYTimes/gziphandler"
 	"log"
+	"fmt"
 )
 
 func redisConnect() *redis.Client {
@@ -23,9 +24,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	pathEncoded := Tools.EncodePath(path)
 
-	//fmt.Println("------------------------------")
-	//fmt.Println("Path is " + path)
-	//fmt.Println("Md5 is " + pathEncoded)
+	fmt.Println("------------------------------")
+	fmt.Println("Path is " + path)
+	fmt.Println("Md5 is " + pathEncoded)
 
 	// See if a cache hit
 	cacheKey := "page_" + pathEncoded
@@ -35,7 +36,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	response := Tools.HTTPResponse{}
 	if (errB != nil) {
-		//fmt.Println("Not a hit");
+		fmt.Println("Not a hit");
 
 		resp, err := http.Get("https://www.drewberryinsurance.co.uk" + path)
 		if err != nil {
@@ -54,7 +55,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		// [CACHE] Save
 		defer globalRedisClient.Set(cacheKey, Tools.EncodeResponse(response), 0)
 	} else {
-		//fmt.Println("A hit");
+		fmt.Println("A hit");
 
 		response = Tools.DecodeResponse(cacheEntry)
 	}
@@ -65,7 +66,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(response.Body)
 
-	//fmt.Println("------------------------------")
+	fmt.Println("------------------------------")
 
 }
 
