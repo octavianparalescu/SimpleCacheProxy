@@ -1,0 +1,9 @@
+source: "https://octav.info"
+exposedPort: 80
+doExposeGzip: false
+doCache: true
+redisCache:
+  hostname: "localhost"
+  port: 6379
+  password: ""
+  DB: 0

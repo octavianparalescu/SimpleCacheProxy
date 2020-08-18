@@ -1,15 +1,15 @@
-package Tools
+package HTTP
 
 import (
 	"net/http"
 )
 
 var allowedHeaders = map[string]bool{
-	"Content-Type": true,
-	"Expires": true,
+	"Content-Type":  true,
+	"Expires":       true,
 	"Cache-Control": true,
 	"Last-Modified": true,
-	"ETag": true,
+	"ETag":          true,
 }
 
 func GetProperHeaders(h http.Header) map[string]string {
@@ -20,7 +20,7 @@ func GetProperHeaders(h http.Header) map[string]string {
 	for k, v := range h {
 		// todo: better header control, especially regarding the expires/cache-control
 		// todo: use a black-list instead of a white-list
-		if (allowedHeaders[k]) {
+		if allowedHeaders[k] {
 			newHeaders[k] = v[0]
 		}
 	}

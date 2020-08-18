@@ -1,84 +1,82 @@
 package main
 
 import (
-	"net/http"
-	"gopkg.in/redis.v4"
-	"io/ioutil"
-	"github.com/OctavianParalescu/SimpleCacheProxy/Tools"
-	"github.com/NYTimes/gziphandler"
-	"log"
 	"fmt"
+	"github.com/NYTimes/gziphandler"
+	"github.com/OctavianParalescu/SimpleCacheProxy/Config"
+	"github.com/OctavianParalescu/SimpleCacheProxy/HTTP"
+	"gopkg.in/redis.v5"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"strconv"
 )
 
-func redisConnect() *redis.Client {
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0, // use default DB
-	})
-
-	return redisClient
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
-	pathEncoded := Tools.EncodePath(path)
-
-	fmt.Println("------------------------------")
-	fmt.Println("Path is " + path)
-	fmt.Println("Md5 is " + pathEncoded)
-
-	// See if a cache hit
-	cacheKey := "page_" + pathEncoded
-
-	// [CACHE] Get
-	cacheEntry, errB := globalRedisClient.Get(cacheKey).Result()
-
-	response := Tools.HTTPResponse{}
-	if (errB != nil) {
-		fmt.Println("Not a hit");
-
-		resp, err := http.Get("https://www.drewberryinsurance.co.uk" + path)
-		if err != nil {
-			panic(err)
-		}
-
-		defer resp.Body.Close()
-
-		body, err := ioutil.ReadAll(resp.Body)
-
-		body = Tools.GetProperBODY(path, body)
-		headers := Tools.GetProperHeaders(resp.Header)
-
-		response = Tools.HTTPResponse{Headers: headers, Body: body}
-
-		// [CACHE] Save
-		defer globalRedisClient.Set(cacheKey, Tools.EncodeResponse(response), 0)
-	} else {
-		fmt.Println("A hit");
-
-		response = Tools.DecodeResponse(cacheEntry)
-	}
-
-	// Show page
-	for k, v := range response.Headers {
-		w.Header().Set(k, v)
-	}
-	w.Write(response.Body)
-
-	fmt.Println("------------------------------")
-
+type ProgramConfig struct {
+	Source              string `yaml:"source"`
+	DoExposeSecure      bool   `yaml:"doExposeSecure"`
+	CertificateLocation string `yaml:"certificateLocation"`
+	ExposedPort         int    `yaml:"exposedPort"`
+	DoExposeGzip        bool   `yaml:"doExposeGzip"`
+	DoCache             bool   `yaml:"doCache"`
+	CacheType           string `yaml:"cacheType"`
+	RedisCache          struct {
+		Hostname string `yaml:"hostname"`
+		Port     int    `yaml:"port"`
+		Password string `yaml:"password"`
+		DB       int    `yaml:"db,omitempty"`
+	} `yaml:"redisCache"`
 }
 
 var globalRedisClient *redis.Client
 
 func main() {
-	globalRedisClient = redisConnect()
+	dat, err := ioutil.ReadFile("config.yaml")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Print(string(dat))
+	programCfg := ProgramConfig{}
+	err = yaml.Unmarshal(dat, &programCfg)
+	if err != nil {
+		panic("config.yaml cannot be parsed: " + err.Error())
+	}
+	fmt.Println(programCfg)
 
-	withGz := gziphandler.GzipHandler(http.HandlerFunc(handler))
+	if programCfg.DoCache {
+		if programCfg.CacheType == "redis" {
+			if programCfg.RedisCache.Hostname == "" {
+				programCfg.RedisCache.Hostname = "localhost"
+			}
+			if programCfg.RedisCache.Port == 0 {
+				programCfg.RedisCache.Port = 6379
+			}
+			addr := programCfg.RedisCache.Hostname + ":" + strconv.Itoa(programCfg.RedisCache.Port)
+			globalRedisClient = Config.RedisConnect(&redis.Options{
+				Addr:     addr,
+				Password: programCfg.RedisCache.Password, // no password set
+				DB:       programCfg.RedisCache.DB,       // use default DB
+			})
+		}
+	}
 
-	http.Handle("/", withGz)
-	if err := http.ListenAndServe(":80", nil); err != nil {
+	var withGz http.Handler
+	if programCfg.DoExposeGzip {
+		withGz = gziphandler.GzipHandler(http.HandlerFunc(HTTP.HandlerFactory(globalRedisClient, programCfg.Source)))
+	}
+
+	fmt.Println("Starting the handler")
+	if programCfg.DoExposeGzip {
+		http.Handle("/", withGz)
+	} else {
+		http.Handle("/", http.HandlerFunc(HTTP.HandlerFactory(globalRedisClient, programCfg.Source)))
+	}
+	if programCfg.ExposedPort == 0 {
+		programCfg.ExposedPort = 80
+	}
+	if err := http.ListenAndServe(":"+strconv.Itoa(programCfg.ExposedPort), nil); err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
+
 }
